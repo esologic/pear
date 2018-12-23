@@ -1,12 +1,45 @@
-import sounddevice as sd
-import soundfile as sf
+"""
+See README.md for usage and installation
+Written by Devon Bray (dev@esologic.com)
+"""
+
+import sounddevice
+import soundfile
 import threading
+import argparse
+import pathlib
+import os
+
+
+def load_sound_file_into_memory(path):
+    """
+    Get the in-memory version of a given path to a wav file
+    TODO: would love the use of a with statement here.
+    :param path: wav file to be loaded
+    :return: audio_data, sample rate
+    """
+
+    return soundfile.read(path)
+
+
+def dir_path(path):
+    """
+    Checks to see if the given path is actually a directory
+    :param path: a path to a directory
+    :return: path if it's a directory, raises an error if otherwise
+    """
+
+    p = pathlib.Path(path)
+    if p.is_dir():
+        return path
+    else:
+        raise NotADirectoryError(path)
 
 
 def get_device_number_if_usb_soundcard(index_info):
     """
     Given a device dict, return True if the device is one of our USB sound cards and False if otherwise
-    :param device: a device info dict from PyAudio.
+    :param index_info: a device info dict from PyAudio.
     :return: True if usb sound card, False if otherwise
     """
 
@@ -17,22 +50,56 @@ def get_device_number_if_usb_soundcard(index_info):
     return False
 
 
-def play_wav_on_index(wav_file_path, device_index):
-    data, fs = sf.read(wav_file_path, dtype='float32')
-    sd.play(data, fs, device=device_index)
-    sd.wait()
+def play_wav_on_index(audio_data_and_sample_rate, device_index):
+    """
+    Play an audio file given as the result of `load_sound_file_into_memory`
+    :param audio_data_and_sample_rate: (A two-dimensional NumPy array , sample rate)
+    :param device_index: the device index of the output device
+    :return: None, returns when the song has finished
+    """
+
+    audio_data, sample_rate = audio_data_and_sample_rate
+    sounddevice.play(audio_data, sample_rate, device=device_index)
+    sounddevice.wait()
 
 
 if __name__ == "__main__":
 
-    usb_sound_card_indicies = filter(lambda x: x is not False,
-                                     map(get_device_number_if_usb_soundcard,
-                                         [index_info for index_info in enumerate(sd.query_devices())]))
+    parser = argparse.ArgumentParser(description='a simple tool for sound installations')
+    parser.add_argument("dir", type=dir_path)
+    args = parser.parse_args()
 
-    threads = [threading.Thread(target=play_wav_on_index, args=["test.wav", i]) for i in usb_sound_card_indicies]
+    sound_file_paths = [os.path.join(args.dir, path) for path in sorted(filter(lambda path: str(path).endswith(".wav"),
+                                                                               os.listdir(args.dir)))]
 
-    for thread in threads:
-        thread.start()
+    print("Discovered the following .wav files:", sound_file_paths)
 
-    for thread in threads:
-        thread.join()
+    files = [load_sound_file_into_memory(path) for path in sound_file_paths]
+
+    print("Files loaded into memory")
+
+    usb_sound_card_indices = list(filter(lambda x: x is not False,
+                                         map(get_device_number_if_usb_soundcard,
+                                             [index_info for index_info in enumerate(sounddevice.query_devices())])))
+
+    print("Discovered the following usb sound devices", usb_sound_card_indices)
+
+    running = True
+
+    while running:
+
+        print("Playing files")
+
+        try:
+            threads = [threading.Thread(target=play_wav_on_index, args=[file_path, device])
+                       for file_path, device in zip(files, usb_sound_card_indices)]
+
+            for thread in threads:
+                thread.start()
+
+            for thread in threads:
+                thread.join()
+
+        except KeyboardInterrupt:
+            running = False
+            print("Program will stop when files have finished playing")
