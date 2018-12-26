@@ -9,6 +9,7 @@ import threading
 import argparse
 import pathlib
 import os
+import time
 
 
 def load_sound_file_into_memory(path):
@@ -50,17 +51,17 @@ def get_device_number_if_usb_soundcard(index_info):
     return False
 
 
-def play_wav_on_index(audio_data_and_sample_rate, device_index):
+def play_wav_on_index(audio_data_and_sample_rate, index):
     """
     Play an audio file given as the result of `load_sound_file_into_memory`
     :param audio_data_and_sample_rate: (A two-dimensional NumPy array , sample rate)
-    :param device_index: the device index of the output device
+    :param index: the device index of the output device
     :return: None, returns when the song has finished
     """
-
     audio_data, sample_rate = audio_data_and_sample_rate
-    sounddevice.play(audio_data, sample_rate, device=device_index)
+    sounddevice.play(audio_data, sample_rate, device=index, blocking=True)
     sounddevice.wait()
+    sounddevice.stop(ignore_errors=True)
 
 
 if __name__ == "__main__":
@@ -97,9 +98,12 @@ if __name__ == "__main__":
             for thread in threads:
                 thread.start()
 
-            for thread in threads:
+            for thread, device_index in zip(threads, usb_sound_card_indices):
+                print("Waiting for device", device_index, "to finish")
                 thread.join()
 
         except KeyboardInterrupt:
             running = False
             print("Program will stop when files have finished playing")
+
+    print("Bye.")

@@ -1,0 +1,1 @@
+python3 /home/pi/pear/pear.py /mnt/usb/
