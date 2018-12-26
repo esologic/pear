@@ -10,6 +10,9 @@ import argparse
 import pathlib
 import os
 import time
+import pyaudio
+import wave
+import numpy as np
 
 
 def load_sound_file_into_memory(path):
@@ -20,7 +23,7 @@ def load_sound_file_into_memory(path):
     :return: audio_data, sample rate
     """
 
-    return soundfile.read(path)
+    return soundfile.read(path, dtype="int16")
 
 
 def dir_path(path):
@@ -58,10 +61,34 @@ def play_wav_on_index(audio_data_and_sample_rate, index):
     :param index: the device index of the output device
     :return: None, returns when the song has finished
     """
+
+    print("Playing audio on device", index)
     audio_data, sample_rate = audio_data_and_sample_rate
     sounddevice.play(audio_data, sample_rate, device=index, blocking=True)
     sounddevice.wait()
-    sounddevice.stop(ignore_errors=True)
+    print("Done playing audio on device", index)
+
+
+def play_wav_on_index_new(audio_data_and_sample_rate, stream_object):
+    """
+    Play an audio file given as the result of `load_sound_file_into_memory`
+    :param audio_data_and_sample_rate: (A two-dimensional NumPy array , sample rate)
+    :param index: the device index of the output device
+    :return: None, returns when the song has finished
+    """
+    data, sample_rate = audio_data_and_sample_rate
+    stream_object.write(data)
+
+
+def create_output_stream(index):
+    
+    output = sounddevice.OutputStream(
+        device=index,
+        samplerate=44100,
+        dtype="int16"
+    )
+    output.start()
+    return output
 
 
 if __name__ == "__main__":
@@ -85,15 +112,19 @@ if __name__ == "__main__":
 
     print("Discovered the following usb sound devices", usb_sound_card_indices)
 
+    streams = [create_output_stream(index) for index in usb_sound_card_indices]
+
     running = True
+
+    p = pyaudio.PyAudio()
 
     while running:
 
         print("Playing files")
 
         try:
-            threads = [threading.Thread(target=play_wav_on_index, args=[file_path, device])
-                       for file_path, device in zip(files, usb_sound_card_indices)]
+            threads = [threading.Thread(target=play_wav_on_index_new, args=[file_path, stream])
+                       for file_path, stream in zip(files, streams)]
 
             for thread in threads:
                 thread.start()
@@ -105,5 +136,7 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             running = False
             print("Program will stop when files have finished playing")
+
+    p.terminate()
 
     print("Bye.")
