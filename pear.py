@@ -3,7 +3,7 @@ See README.md for usage and installation
 Written by Devon Bray (dev@esologic.com)
 """
 
-import sounddevice as sd
+import sounddevice
 import soundfile
 import threading
 import argparse
@@ -11,8 +11,6 @@ import pathlib
 import os
 
 
-SAMPLE_RATE = 44100
-NUM_CHANNELS = 2
 DATA_TYPE = "int16"
 
 
@@ -74,10 +72,8 @@ def create_running_output_stream(index):
     :return: a started sounddevice.OutputStream object ready to be written to
     """
 
-    output = sd.OutputStream(
+    output = sounddevice.OutputStream(
         device=index,
-        samplerate=SAMPLE_RATE,
-        channels=NUM_CHANNELS,
         dtype=DATA_TYPE
     )
 
@@ -98,11 +94,11 @@ if __name__ == "__main__":
 
     files = [load_sound_file_into_memory(path) for path in sound_file_paths]
 
-    print("Files loaded into memory, discovering USB devices.")
+    print("Files loaded into memory, Looking for USB devices.")
 
     usb_sound_card_indices = list(filter(lambda x: x is not False,
                                          map(get_device_number_if_usb_soundcard,
-                                             [index_info for index_info in enumerate(sd.query_devices())])))
+                                             [index_info for index_info in enumerate(sounddevice.query_devices())])))
 
     print("Discovered the following usb sound devices", usb_sound_card_indices)
 
@@ -143,3 +139,4 @@ if __name__ == "__main__":
             print("Streams stopped")
 
     print("Bye.")
+
