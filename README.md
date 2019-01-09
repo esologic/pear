@@ -7,7 +7,6 @@ and play them over usb sound devices attached to the host computer over and over
 
 Right now, the project only supports debian-based Linux, and the USB-AUDIO from Plugable, which is based on the C-Media HS 100B. It would be very easy to support more devices, make an issue or just send a PR.
 
-
 ## Prerequisites
 
 This project is based on the [sounddevice](https://github.com/spatialaudio/python-sounddevice/) python library.
@@ -15,7 +14,7 @@ This project is based on the [sounddevice](https://github.com/spatialaudio/pytho
 Run the following command to install the prerequisite debian packages:
 
 ```
- sudo apt-get install python3-pip python3-numpy libportaudio2 libsndfile1 screen
+ sudo apt-get install python3-pip python3-numpy libportaudio2 libsndfile1 screen git
 ```
 
 Then install `sounddevice` and `soundfile`.
@@ -44,7 +43,6 @@ Example:
 $ python3 pear.py ./test
 ```
 
-
 ## Run at Boot
 
 If you want pear to start playing sound as soon as it turns on, you can add the included `runpear.sh` to your crontab.
@@ -58,7 +56,13 @@ crontab -e
 The resulting file should contain the following line:
 
 ```
+@reboot screen -dmS pear /bin/bash /home/pi/pear/runpear.sh
+```
 
+If you want to check in on the script, you can do so any time by running:
+
+```
+screen -r pear
 ```
 
 ### Load sound files automatically from USB drive
