@@ -11,7 +11,7 @@ import pathlib
 import os
 
 
-DATA_TYPE = "int16"
+DATA_TYPE = "float32"
 
 
 def load_sound_file_into_memory(path):
