@@ -87,7 +87,15 @@ if __name__ == "__main__":
     parser.add_argument("dir", type=dir_path)
     args = parser.parse_args()
 
-    sound_file_paths = [os.path.join(args.dir, path) for path in sorted(filter(lambda path: str(path).endswith(".wav"),
+    def good_filepath(path):
+        """
+        Macro for returning false if the file is not a non-hidden wav file
+        :param path: path to the file
+        :return: true if a non-hidden wav, false if not a wav or hidden
+        """
+        return str(path).endswith(".wav") and (not str(path).startswith("."))
+
+    sound_file_paths = [os.path.join(args.dir, path) for path in sorted(filter(lambda path: good_filepath(path),
                                                                                os.listdir(args.dir)))]
 
     print("Discovered the following .wav files:", sound_file_paths)
